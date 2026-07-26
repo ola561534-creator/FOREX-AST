@@ -26,7 +26,7 @@ app.get("/", (req, res) => {
 });
 
 // Get forex market data
-app.get("/api/forex", async (req, res) => {
+app.get("/api/market", async (req, res) => {
   try {
     const symbol = req.query.symbol || "EUR/USD";
     const interval = req.query.interval || "15min";
