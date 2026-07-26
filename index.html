@@ -146,7 +146,20 @@ function marketDataHTML(){return `
 
 async function renderMarketData() {
   const pair = document.getElementById("marketPair").value;
-  const timeframe = document.getElementById("marketTimeframe").value;
+  const timeframeValue = document.getElementById("marketTimeframe").value;
+
+const timeframeMap = {
+  "15min": "15min",
+  "15 Minutes": "15min",
+  "1h": "1h",
+  "1 Hour": "1h",
+  "4h": "4h",
+  "4 Hours": "4h",
+  "1day": "1day",
+  "1 Day": "1day"
+};
+
+const timeframe = timeframeMap[timeframeValue] || "1h";
 
   const output = document.getElementById("marketOutput");
 
