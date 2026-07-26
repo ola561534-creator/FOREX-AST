@@ -144,23 +144,146 @@ function marketDataHTML(){return `
 <div id="marketOutput"><div class="market-status">Select a pair and load sample data to begin.</div></div>
 </div>`;}
 
-function renderMarketData(){
-const pair=document.getElementById("marketPair").value,timeframe=document.getElementById("marketTimeframe").value,candles=sampleMarketData[pair];
-const latest=candles[candles.length-1],previous=candles[candles.length-2],isJpy=pair.endsWith("JPY"),digits=isJpy?3:5,pipSize=isJpy?.01:.0001;
-const change=latest.close-previous.close,changePips=change/pipSize,spreadPips=1.2,bid=latest.close-spreadPips*pipSize/2,ask=latest.close+spreadPips*pipSize/2,direction=change>0?"Bullish":"Bearish";
-document.getElementById("marketOutput").innerHTML=`
-<div class="market-summary">
-<div class="market-stat"><span>PAIR</span><strong>${pair}</strong></div><div class="market-stat"><span>LAST PRICE</span><strong>${latest.close.toFixed(digits)}</strong></div>
-<div class="market-stat"><span>CHANGE</span><strong>${changePips>=0?"+":""}${changePips.toFixed(1)} pips</strong></div><div class="market-stat"><span>BIAS</span><strong>${direction}</strong></div>
-</div>
-<div class="market-summary">
-<div class="market-stat"><span>BID</span><strong>${bid.toFixed(digits)}</strong></div><div class="market-stat"><span>ASK</span><strong>${ask.toFixed(digits)}</strong></div>
-<div class="market-stat"><span>SPREAD</span><strong>${spreadPips.toFixed(1)} pips</strong></div><div class="market-stat"><span>TIMEFRAME</span><strong>${timeframe}</strong></div>
-</div>
-<div class="market-status">✓ Sample market data loaded successfully. This is simulated data, not live broker pricing.</div>
-<div class="candle-wrap"><table class="candle-table"><thead><tr><th>Time</th><th>Open</th><th>High</th><th>Low</th><th>Close</th></tr></thead><tbody>
-${candles.map(c=>`<tr><td>${c.time}</td><td>${c.open.toFixed(digits)}</td><td>${c.high.toFixed(digits)}</td><td>${c.low.toFixed(digits)}</td><td>${c.close.toFixed(digits)}</td></tr>`).join("")}
-</tbody></table></div>`;}
+async function renderMarketData() {
+  const pair = document.getElementById("marketPair").value;
+  const timeframe = document.getElementById("marketTimeframe").value;
+
+  const output = document.getElementById("marketOutput");
+
+  output.innerHTML = `
+    <div class="market-status">
+      ⏳ Loading live market data...
+    </div>
+  `;
+
+  try {
+    const apiUrl =
+      `https://forex-ast.vercel.app/api/forex` +
+      `?symbol=${encodeURIComponent(pair)}` +
+      `&interval=${encodeURIComponent(timeframe)}` +
+      `&outputsize=50`;
+
+    const response = await fetch(apiUrl);
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "Unable to load market data");
+    }
+
+    const candles = result.data;
+
+    if (!candles || candles.length < 2) {
+      throw new Error("Not enough market data received");
+    }
+
+    // Twelve Data returns newest candle first
+    const latest = candles[0];
+    const previous = candles[1];
+
+    const isJpy = pair.endsWith("JPY");
+    const digits = isJpy ? 3 : 5;
+    const pipSize = isJpy ? 0.01 : 0.0001;
+
+    const latestClose = parseFloat(latest.close);
+    const previousClose = parseFloat(previous.close);
+
+    const change = latestClose - previousClose;
+    const changePips = change / pipSize;
+
+    const direction = change > 0 ? "Bullish" : change < 0 ? "Bearish" : "Neutral";
+
+    // Display live market data
+    output.innerHTML = `
+      <div class="market-summary">
+        <div class="market-stat">
+          <span>PAIR</span>
+          <strong>${pair}</strong>
+        </div>
+
+        <div class="market-stat">
+          <span>LAST PRICE</span>
+          <strong>${latestClose.toFixed(digits)}</strong>
+        </div>
+
+        <div class="market-stat">
+          <span>CHANGE</span>
+          <strong>
+            ${changePips >= 0 ? "+" : ""}
+            ${changePips.toFixed(1)} pips
+          </strong>
+        </div>
+
+        <div class="market-stat">
+          <span>BIAS</span>
+          <strong>${direction}</strong>
+        </div>
+      </div>
+
+      <div class="market-summary">
+        <div class="market-stat">
+          <span>OPEN</span>
+          <strong>${parseFloat(latest.open).toFixed(digits)}</strong>
+        </div>
+
+        <div class="market-stat">
+          <span>HIGH</span>
+          <strong>${parseFloat(latest.high).toFixed(digits)}</strong>
+        </div>
+
+        <div class="market-stat">
+          <span>LOW</span>
+          <strong>${parseFloat(latest.low).toFixed(digits)}</strong>
+        </div>
+
+        <div class="market-stat">
+          <span>TIMEFRAME</span>
+          <strong>${timeframe}</strong>
+        </div>
+      </div>
+
+      <div class="market-status">
+        ✓ Live market data loaded successfully.
+      </div>
+
+      <div class="candle-wrap">
+        <table class="candle-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Open</th>
+              <th>High</th>
+              <th>Low</th>
+              <th>Close</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${candles.map(c => `
+              <tr>
+                <td>${c.datetime}</td>
+                <td>${parseFloat(c.open).toFixed(digits)}</td>
+                <td>${parseFloat(c.high).toFixed(digits)}</td>
+                <td>${parseFloat(c.low).toFixed(digits)}</td>
+                <td>${parseFloat(c.close).toFixed(digits)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  } catch (error) {
+    console.error("Market data error:", error);
+
+    output.innerHTML = `
+      <div class="market-status">
+        ❌ Unable to load live market data.
+        <br><br>
+        ${error.message}
+      </div>
+    `;
+  }
+}
 
 function openMarketData(){
 const marketModal=document.getElementById("marketModal"),marketContent=document.getElementById("marketContent");
