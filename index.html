@@ -145,24 +145,44 @@ function marketDataHTML(){return `
 </div>`;}
 
 async function renderMarketData() {
-  const pair = document.getElementById("marketPair").value;
-  const timeframeValue = document.getElementById("marketTimeframe").value;
-
-const timeframeMap = {
-  "15min": "15min",
-  "15 Minutes": "15min",
-  "1h": "1h",
-  "1 Hour": "1h",
-  "4h": "4h",
-  "4 Hours": "4h",
-  "1day": "1day",
-  "1 Day": "1day"
-};
-
-const timeframe = timeframeMap[timeframeValue] || "1h";
-
+  const pairElement = document.getElementById("marketPair");
+  const timeframeElement = document.getElementById("marketTimeframe");
   const output = document.getElementById("marketOutput");
 
+  if (!pairElement || !timeframeElement || !output) {
+    console.error("Market data elements not found.");
+    return;
+  }
+
+  const pair = pairElement.value;
+
+  // Convert the dropdown value into a Twelve Data API interval
+  const timeframeMap = {
+    "15 Minutes": "15min",
+    "15 Minutes": "15min",
+    "15min": "15min",
+
+    "30 Minutes": "30min",
+    "30 Minutes": "30min",
+    "30min": "30min",
+
+    "1 Hour": "1h",
+    "1 Hour": "1h",
+    "1h": "1h",
+
+    "4 Hours": "4h",
+    "4 Hours": "4h",
+    "4h": "4h",
+
+    "1 Day": "1day",
+    "1 Day": "1day",
+    "1day": "1day"
+  };
+
+  const selectedTimeframe = timeframeElement.value;
+  const timeframe = timeframeMap[selectedTimeframe] || "1h";
+
+  // Show loading message
   output.innerHTML = `
     <div class="market-status">
       ⏳ Loading live market data...
@@ -170,44 +190,89 @@ const timeframe = timeframeMap[timeframeValue] || "1h";
   `;
 
   try {
-    const apiUrl =
-      `https://forex-ast.vercel.app/api/forex` +
-      `?symbol=${encodeURIComponent(pair)}` +
-      `&interval=${encodeURIComponent(timeframe)}` +
-      `&outputsize=50`;
+    // Build API URL safely
+    const apiUrl = new URL(
+      "https://forex-ast.vercel.app/api/forex"
+    );
 
-    const response = await fetch(apiUrl);
+    apiUrl.searchParams.set("symbol", pair);
+    apiUrl.searchParams.set("interval", timeframe);
+    apiUrl.searchParams.set("outputsize", "50");
+
+    console.log("Requesting market data:", apiUrl.toString());
+
+    // Request live data from Vercel backend
+    const response = await fetch(apiUrl.toString());
+
     const result = await response.json();
 
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || "Unable to load market data");
+    // Check API response
+    if (!response.ok) {
+      throw new Error(
+        result.error || "The market data server returned an error."
+      );
+    }
+
+    if (!result.success) {
+      throw new Error(
+        result.error || "Unable to load market data."
+      );
     }
 
     const candles = result.data;
 
-    if (!candles || candles.length < 2) {
-      throw new Error("Not enough market data received");
+    if (!Array.isArray(candles) || candles.length < 2) {
+      throw new Error(
+        "The API did not return enough candle data."
+      );
     }
 
-    // Twelve Data returns newest candle first
+    // Latest candle is first because Twelve Data returns
+    // the newest candle first
     const latest = candles[0];
     const previous = candles[1];
 
+    // Convert prices from strings to numbers
+    const latestClose = Number(latest.close);
+    const previousClose = Number(previous.close);
+
+    const latestOpen = Number(latest.open);
+    const latestHigh = Number(latest.high);
+    const latestLow = Number(latest.low);
+
+    // Check that prices are valid
+    if (
+      !Number.isFinite(latestClose) ||
+      !Number.isFinite(previousClose)
+    ) {
+      throw new Error(
+        "Invalid price data was received from the market API."
+      );
+    }
+
+    // Determine decimal places and pip size
     const isJpy = pair.endsWith("JPY");
+
     const digits = isJpy ? 3 : 5;
     const pipSize = isJpy ? 0.01 : 0.0001;
 
-    const latestClose = parseFloat(latest.close);
-    const previousClose = parseFloat(previous.close);
-
+    // Calculate price movement
     const change = latestClose - previousClose;
     const changePips = change / pipSize;
 
-    const direction = change > 0 ? "Bullish" : change < 0 ? "Bearish" : "Neutral";
+    // Determine market direction
+    let direction = "Neutral";
+
+    if (change > 0) {
+      direction = "Bullish";
+    } else if (change < 0) {
+      direction = "Bearish";
+    }
 
     // Display live market data
     output.innerHTML = `
       <div class="market-summary">
+
         <div class="market-stat">
           <span>PAIR</span>
           <strong>${pair}</strong>
@@ -230,28 +295,31 @@ const timeframe = timeframeMap[timeframeValue] || "1h";
           <span>BIAS</span>
           <strong>${direction}</strong>
         </div>
+
       </div>
 
       <div class="market-summary">
+
         <div class="market-stat">
           <span>OPEN</span>
-          <strong>${parseFloat(latest.open).toFixed(digits)}</strong>
+          <strong>${latestOpen.toFixed(digits)}</strong>
         </div>
 
         <div class="market-stat">
           <span>HIGH</span>
-          <strong>${parseFloat(latest.high).toFixed(digits)}</strong>
+          <strong>${latestHigh.toFixed(digits)}</strong>
         </div>
 
         <div class="market-stat">
           <span>LOW</span>
-          <strong>${parseFloat(latest.low).toFixed(digits)}</strong>
+          <strong>${latestLow.toFixed(digits)}</strong>
         </div>
 
         <div class="market-stat">
           <span>TIMEFRAME</span>
-          <strong>${timeframe}</strong>
+          <strong>${selectedTimeframe}</strong>
         </div>
+
       </div>
 
       <div class="market-status">
@@ -259,7 +327,9 @@ const timeframe = timeframeMap[timeframeValue] || "1h";
       </div>
 
       <div class="candle-wrap">
+
         <table class="candle-table">
+
           <thead>
             <tr>
               <th>Time</th>
@@ -271,22 +341,39 @@ const timeframe = timeframeMap[timeframeValue] || "1h";
           </thead>
 
           <tbody>
-            ${candles.map(c => `
-              <tr>
-                <td>${c.datetime}</td>
-                <td>${parseFloat(c.open).toFixed(digits)}</td>
-                <td>${parseFloat(c.high).toFixed(digits)}</td>
-                <td>${parseFloat(c.low).toFixed(digits)}</td>
-                <td>${parseFloat(c.close).toFixed(digits)}</td>
-              </tr>
-            `).join("")}
+
+            ${candles.map(candle => {
+
+              const open = Number(candle.open);
+              const high = Number(candle.high);
+              const low = Number(candle.low);
+              const close = Number(candle.close);
+
+              return `
+                <tr>
+                  <td>${candle.datetime}</td>
+                  <td>${open.toFixed(digits)}</td>
+                  <td>${high.toFixed(digits)}</td>
+                  <td>${low.toFixed(digits)}</td>
+                  <td>${close.toFixed(digits)}</td>
+                </tr>
+              `;
+
+            }).join("")}
+
           </tbody>
+
         </table>
+
       </div>
     `;
 
   } catch (error) {
-    console.error("Market data error:", error);
+
+    console.error(
+      "Live market data error:",
+      error
+    );
 
     output.innerHTML = `
       <div class="market-status">
