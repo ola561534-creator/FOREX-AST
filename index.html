@@ -142,27 +142,13 @@ async function renderMarketData() {
 
   // Convert the dropdown value into a Twelve Data API interval
   const timeframeMap = {
-    "15 Minutes": "15min",
-    "15 Minutes": "15min",
-    "15min": "15min",
-
-    "30 Minutes": "30min",
-    "30 Minutes": "30min",
-    "30min": "30min",
-
-    "1 Hour": "1h",
-    "1 Hour": "1h",
-    "1h": "1h",
-
-    "4 Hours": "4h",
-    "4 Hours": "4h",
-    "4h": "4h",
-
-    "1 Day": "1day",
-    "1 Day": "1day",
-    "1day": "1day"
-  };
-
+  "1 Minute": "1min",
+  "15 Minutes": "15min",
+  "1 Hour": "1h",
+  "4 Hours": "4h",
+  "Daily": "1day",
+  "Weekly": "1week"
+};
   const selectedTimeframe = timeframeElement.value;
   const timeframe = timeframeMap[selectedTimeframe] || "1h";
 
@@ -176,9 +162,8 @@ async function renderMarketData() {
   try {
     // Build API URL safely
     const apiUrl = new URL(
-      "https://forex-ast.vercel.app/api/forex"
-    );
-
+  "https://forex-ast.vercel.app/api/market"
+);
     apiUrl.searchParams.set("symbol", pair);
     apiUrl.searchParams.set("interval", timeframe);
     apiUrl.searchParams.set("outputsize", "50");
