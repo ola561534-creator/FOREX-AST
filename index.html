@@ -442,15 +442,97 @@ function stopForexAstAutoRefresh() {
 
 
 // FOREX AST LIVE WEBSOCKET START
-let forexAstLiveSocket = null;
-let forexAstLiveSocketReconnectTimer = null;
-let forexAstLiveSocketHeartbeatTimer = null;
+async function connectLiveStream(symbol) {
+  try {
+    // Ask our backend for the secure Twelve Data WebSocket URL
+    const response = await fetch(
+      `/api/stream?symbol=${encodeURIComponent(symbol)}`
+    );
 
-function forexAstSetWsStatus(text, state) {
-  const el = document.getElementById("wsStatus");
-  if (!el) return;
-  el.textContent = text;
-  el.className = "ws-status" + (state ? " " + state : "");
+    const config = await response.json();
+
+    if (!response.ok || !config.success) {
+      throw new Error(
+        config.error || "Unable to configure live market stream."
+      );
+    }
+
+    console.log("Connecting to live stream:", config.websocketUrl);
+
+    const socket = new WebSocket(config.websocketUrl);
+
+    socket.onopen = () => {
+      console.log("✓ Live WebSocket connected");
+
+      // Subscribe to the selected currency pair
+      socket.send(
+        JSON.stringify({
+          action: "subscribe",
+          params: {
+            symbols: symbol.replace(/\s/g, "")
+          }
+        })
+      );
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        console.log("Live market update:", data);
+
+        // Twelve Data sends price updates here
+        if (data.event === "price") {
+          const livePrice = Number(data.price);
+
+          if (!Number.isFinite(livePrice)) return;
+
+          // Update your live price display
+          const priceElement =
+            document.getElementById("livePrice");
+
+          if (priceElement) {
+            priceElement.textContent =
+              livePrice.toFixed(
+                symbol.includes("JPY") ? 3 : 5
+              );
+          }
+
+          // Update your chart here
+          updateLiveChart(livePrice);
+        }
+
+      } catch (error) {
+        console.error(
+          "Live stream message error:",
+          error
+        );
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error(
+        "WebSocket connection error:",
+        error
+      );
+    };
+
+    socket.onclose = () => {
+      console.log(
+        "Live WebSocket disconnected"
+      );
+    };
+
+    // Store socket globally so it can be closed
+    // when the user changes currency pair
+    window.forexAstLiveSocket = socket;
+
+  } catch (error) {
+    console.error(
+      "Unable to connect live stream:",
+      error
+    );
+  }
 }
 
 function forexAstFormatLagosTime(timestamp) {
