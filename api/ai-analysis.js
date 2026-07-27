@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const { image, symbol, timeframe } = req.body || {};
+    const { image, pair } = req.body || {};
 
     if (!image) {
       return res.status(400).json({
@@ -34,16 +34,17 @@ export default async function handler(req, res) {
       });
     }
 
+    // Extract the symbol from the pair or use default
+    const symbol = pair || "EUR/USD";
+    const timeframe = "Unknown"; // You can pass this from frontend
+
     const prompt = `
 You are the AI market-analysis assistant inside a forex application called FOREX AST.
 
 Analyze the uploaded forex chart carefully.
 
-Instrument:
-${symbol || "Unknown"}
-
-Timeframe:
-${timeframe || "Unknown"}
+Instrument: ${symbol}
+Timeframe: ${timeframe}
 
 Provide a structured analysis.
 
@@ -53,61 +54,45 @@ IMPORTANT:
 - Clearly separate observations from possible trade scenarios.
 - If the chart is unclear, say so.
 
-Analyze:
+Analyze the chart and provide:
 
 1. Market bias: Bullish, Bearish, or Neutral
-2. Overall trend
-3. Market structure
-4. Higher Highs (HH)
-5. Higher Lows (HL)
-6. Lower Highs (LH)
-7. Lower Lows (LL)
-8. Break of Structure (BOS)
-9. Change of Character (CHoCH)
-10. Support levels
-11. Resistance levels
-12. Liquidity areas
-13. Candlestick / price action observations
-14. Possible bullish scenario
-15. Possible bearish scenario
-16. Potential entry zone, if clearly identifiable
-17. Stop-loss idea, if clearly identifiable
-18. Take-profit idea, if clearly identifiable
-19. Risk-to-reward assessment
-20. Invalidation conditions
-21. Confidence level from 0 to 100
-22. A concise explanation of your reasoning
+2. Overall trend description
+3. Price action observations
+4. Support levels (list the key support levels you can identify)
+5. Resistance levels (list the key resistance levels you can identify)
+6. Potential entry zone, if clearly identifiable
+7. Stop-loss idea, if clearly identifiable
+8. Take-profit idea, if clearly identifiable
+9. Risk-to-reward assessment
+10. Invalidation conditions
+11. Confidence level from 0 to 100
+12. A concise explanation of your reasoning
+13. Bullish scenario
+14. Bearish scenario
 
-Return the result as valid JSON using exactly this structure:
+Return ONLY valid JSON using exactly this structure, with no additional text:
 
 {
-  "marketBias": "",
-  "trend": "",
-  "marketStructure": "",
-  "higherHighs": [],
-  "higherLows": [],
-  "lowerHighs": [],
-  "lowerLows": [],
-  "bos": "",
-  "choch": "",
-  "support": [],
-  "resistance": [],
-  "liquidity": "",
-  "priceAction": "",
-  "bullishScenario": "",
-  "bearishScenario": "",
-  "entry": "",
-  "stopLoss": "",
-  "takeProfit": "",
-  "riskReward": "",
-  "invalidation": "",
+  "marketBias": "Bullish, Bearish, or Neutral",
+  "trend": "Description of the trend",
+  "priceAction": "Description of price action observations",
+  "support": ["level1", "level2"],
+  "resistance": ["level1", "level2"],
+  "entry": "Entry zone description",
+  "stopLoss": "Stop-loss description",
+  "takeProfit": "Take-profit description",
+  "riskReward": "Risk-to-reward ratio",
+  "invalidation": "Invalidation conditions",
   "confidence": 0,
-  "reasoning": ""
-}
-`;
+  "reasoning": "Explanation of the analysis",
+  "bullishScenario": "Bullish scenario description",
+  "bearishScenario": "Bearish scenario description"
+}`;
 
+    // Use the Chat Completions API which is more stable
     const response = await fetch(
-      "https://api.openai.com/v1/responses",
+      "https://api.openai.com/v1/chat/completions",
       {
         method: "POST",
         headers: {
@@ -115,23 +100,27 @@ Return the result as valid JSON using exactly this structure:
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "gpt-4.1-mini",
-          input: [
+          model: "gpt-4-vision-preview",
+          messages: [
             {
               role: "user",
               content: [
                 {
-                  type: "input_text",
+                  type: "text",
                   text: prompt
                 },
                 {
-                  type: "input_image",
-                  image_url: image
+                  type: "image_url",
+                  image_url: {
+                    url: image,
+                    detail: "high"
+                  }
                 }
               ]
             }
           ],
-          max_output_tokens: 2500
+          max_tokens: 2500,
+          temperature: 0.7
         })
       }
     );
@@ -141,23 +130,74 @@ Return the result as valid JSON using exactly this structure:
     if (!response.ok) {
       console.error("OpenAI API Error:", data);
 
+      // Try fallback to gpt-4o if gpt-4-vision-preview fails
+      if (response.status === 404) {
+        console.log("Falling back to gpt-4o model...");
+        const fallbackResponse = await fetch(
+          "https://api.openai.com/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: "gpt-4o",
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    {
+                      type: "text",
+                      text: prompt
+                    },
+                    {
+                      type: "image_url",
+                      image_url: {
+                        url: image,
+                        detail: "high"
+                      }
+                    }
+                  ]
+                }
+              ],
+              max_tokens: 2500,
+              temperature: 0.7
+            })
+          }
+        );
+
+        const fallbackData = await fallbackResponse.json();
+
+        if (!fallbackResponse.ok) {
+          throw new Error(fallbackData?.error?.message || "OpenAI API request failed.");
+        }
+
+        return processOpenAIResponse(fallbackData, symbol, timeframe, res);
+      }
+
       return res.status(response.status).json({
         success: false,
-        error:
-          data?.error?.message ||
-          "OpenAI API request failed."
+        error: data?.error?.message || "OpenAI API request failed."
       });
     }
 
-    // Extract the model's text output.
-    const outputText =
-      data.output_text ||
-      data.output
-        ?.flatMap(item => item.content || [])
-        ?.filter(item => item.type === "output_text")
-        ?.map(item => item.text)
-        ?.join("") ||
-      "";
+    return processOpenAIResponse(data, symbol, timeframe, res);
+
+  } catch (error) {
+    console.error("AI Analysis Server Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      error: "Server error while analyzing the chart: " + error.message
+    });
+  }
+}
+
+function processOpenAIResponse(data, symbol, timeframe, res) {
+  try {
+    // Extract the model's text output
+    const outputText = data.choices?.[0]?.message?.content || "";
 
     if (!outputText) {
       return res.status(500).json({
@@ -166,7 +206,7 @@ Return the result as valid JSON using exactly this structure:
       });
     }
 
-    // Remove accidental Markdown code fences.
+    // Remove accidental Markdown code fences
     const cleanedText = outputText
       .replace(/^```json\s*/i, "")
       .replace(/^```\s*/i, "")
@@ -181,11 +221,26 @@ Return the result as valid JSON using exactly this structure:
       console.error("AI JSON Parse Error:", parseError);
       console.error("AI Output:", outputText);
 
-      return res.status(500).json({
-        success: false,
-        error: "The AI returned an invalid analysis format.",
-        raw: outputText
-      });
+      // Try to extract JSON from the text if it's wrapped
+      const jsonMatch = outputText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          analysis = JSON.parse(jsonMatch[0]);
+        } catch (secondError) {
+          // If still can't parse, return error
+          return res.status(500).json({
+            success: false,
+            error: "The AI returned an invalid analysis format.",
+            raw: outputText
+          });
+        }
+      } else {
+        return res.status(500).json({
+          success: false,
+          error: "The AI returned an invalid analysis format.",
+          raw: outputText
+        });
+      }
     }
 
     return res.status(200).json({
@@ -196,11 +251,10 @@ Return the result as valid JSON using exactly this structure:
     });
 
   } catch (error) {
-    console.error("AI Analysis Server Error:", error);
-
+    console.error("Error processing OpenAI response:", error);
     return res.status(500).json({
       success: false,
-      error: "Server error while analyzing the chart."
+      error: "Error processing AI response: " + error.message
     });
   }
 }
