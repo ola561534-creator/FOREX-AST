@@ -726,6 +726,19 @@ function openAIChartAnalysis(){
       status.textContent="No image selected.";
       return;
     }
+    const reader = new FileReader();
+
+reader.onload = function (event) {
+
+    aiChartDataUrl = event.target.result;
+
+    previewImage.src = aiChartDataUrl;
+
+    preview.style.display = "block";
+
+};
+
+reader.readAsDataURL(file);
 
     if(!file.type || !file.type.startsWith("image/")){
       status.textContent="Please select a valid image file such as PNG, JPG, JPEG, or WebP.";
