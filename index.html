@@ -41,9 +41,73 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:24px;border-t
 .market-stat{padding:11px 12px;border-radius:10px;background:#07111f;border:1px solid var(--border)}
 .market-stat span{display:block;color:var(--muted);font-size:10px;margin-bottom:4px}.market-stat strong{font-size:15px}
 .market-status{margin-top:12px;padding:10px 12px;border-radius:10px;color:var(--accent);background:rgba(57,217,138,.08);border:1px solid rgba(57,217,138,.25);font-size:12px}
-.candle-wrap{margin-top:16px;border:1px solid var(--border);border-radius:14px;overflow:auto;background:#07111f}
-.candle-table{width:100%;border-collapse:collapse;min-width:620px}.candle-table th,.candle-table td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:right;font-size:11px}
-.candle-table th{color:var(--muted);font-weight:700}.candle-table td:first-child,.candle-table th:first-child{text-align:left}.candle-table tr:last-child td{border-bottom:0}
+.candle-wrap{
+  margin-top:16px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+  background:#07111f;
+}
+
+.chart-container{
+  width:100%;
+  height:380px;
+  padding:10px;
+  overflow:hidden;
+}
+
+#marketChart{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.chart-toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  background:#0d1b2d;
+}
+
+.chart-title{
+  font-size:13px;
+  font-weight:800;
+}
+
+.chart-price{
+  color:var(--accent);
+  font-weight:800;
+}
+
+.candle-table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:620px;
+}
+
+.candle-table th,
+.candle-table td{
+  padding:9px 10px;
+  border-bottom:1px solid var(--border);
+  text-align:right;
+  font-size:11px;
+}
+
+.candle-table th{
+  color:var(--muted);
+  font-weight:700;
+}
+
+.candle-table td:first-child,
+.candle-table th:first-child{
+  text-align:left;
+}
+
+.candle-table tr:last-child td{
+  border-bottom:0;
+}
 @media(max-width:560px){.market-controls{grid-template-columns:1fr}.market-summary{grid-template-columns:1fr 1fr}}
 
 .modal{position:fixed;inset:0;width:100%;height:100dvh;background:rgba(0,0,0,.68);display:grid;place-items:center;padding:20px;z-index:10;overflow:hidden;overscroll-behavior:contain}
@@ -127,6 +191,210 @@ function marketDataHTML(){return `
 <div class="market-actions"><button class="market-btn" id="loadMarketData">Load Sample Data</button><button class="market-btn secondary" id="refreshMarketData">Refresh</button></div>
 <div id="marketOutput"><div class="market-status">Select a pair and load sample data to begin.</div></div>
 </div>`;}
+
+function drawMarketChart(candles, digits) {
+
+  const canvas = document.getElementById("marketChart");
+
+  if (!canvas) {
+    console.error("Market chart canvas not found.");
+    return;
+  }
+
+  const container = canvas.parentElement;
+
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+
+  canvas.style.width = width + "px";
+  canvas.style.height = height + "px";
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.scale(dpr, dpr);
+
+  // Newest candle comes first from API.
+  // Reverse it so chart moves from left to right.
+  const data = [...candles].reverse();
+
+  if (!data.length) return;
+
+  const prices = data.flatMap(c => [
+    Number(c.high),
+    Number(c.low)
+  ]);
+
+  const maxPrice = Math.max(...prices);
+  const minPrice = Math.min(...prices);
+
+  const priceRange = maxPrice - minPrice || 1;
+
+  const padding = {
+    top: 20,
+    right: 65,
+    bottom: 30,
+    left: 10
+  };
+
+  const chartWidth =
+    width - padding.left - padding.right;
+
+  const chartHeight =
+    height - padding.top - padding.bottom;
+
+  // Background
+  ctx.clearRect(0, 0, width, height);
+
+  // Grid
+  ctx.strokeStyle = "rgba(255,255,255,0.06)";
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i <= 5; i++) {
+
+    const y =
+      padding.top +
+      (chartHeight / 5) * i;
+
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(width - padding.right, y);
+    ctx.stroke();
+
+    const price =
+      maxPrice -
+      (priceRange / 5) * i;
+
+    ctx.fillStyle = "#9fb0c4";
+    ctx.font = "10px Inter, sans-serif";
+
+    ctx.fillText(
+      price.toFixed(digits),
+      width - padding.right + 8,
+      y + 4
+    );
+  }
+
+  const candleWidth =
+    chartWidth / data.length;
+
+  const bodyWidth =
+    Math.max(3, candleWidth * 0.55);
+
+  function priceToY(price) {
+
+    return (
+      padding.top +
+      ((maxPrice - price) / priceRange) *
+      chartHeight
+    );
+
+  }
+
+  data.forEach((candle, index) => {
+
+    const open = Number(candle.open);
+    const high = Number(candle.high);
+    const low = Number(candle.low);
+    const close = Number(candle.close);
+
+    const x =
+      padding.left +
+      index * candleWidth +
+      candleWidth / 2;
+
+    const yHigh = priceToY(high);
+    const yLow = priceToY(low);
+
+    const yOpen = priceToY(open);
+    const yClose = priceToY(close);
+
+    const bullish = close >= open;
+
+    // Candle wick
+    ctx.beginPath();
+
+    ctx.strokeStyle =
+      bullish
+        ? "#39d98a"
+        : "#ff6b6b";
+
+    ctx.lineWidth = 1;
+
+    ctx.moveTo(x, yHigh);
+    ctx.lineTo(x, yLow);
+
+    ctx.stroke();
+
+    // Candle body
+    const bodyTop =
+      Math.min(yOpen, yClose);
+
+    const bodyHeight =
+      Math.max(
+        1,
+        Math.abs(yClose - yOpen)
+      );
+
+    ctx.fillStyle =
+      bullish
+        ? "#39d98a"
+        : "#ff6b6b";
+
+    ctx.fillRect(
+      x - bodyWidth / 2,
+      bodyTop,
+      bodyWidth,
+      bodyHeight
+    );
+
+  });
+
+  // Current price line
+  const latestClose =
+    Number(data[data.length - 1].close);
+
+  const currentY =
+    priceToY(latestClose);
+
+  ctx.beginPath();
+
+  ctx.setLineDash([5, 5]);
+
+  ctx.strokeStyle =
+    "rgba(57,217,138,.7)";
+
+  ctx.moveTo(
+    padding.left,
+    currentY
+  );
+
+  ctx.lineTo(
+    width - padding.right,
+    currentY
+  );
+
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+
+  // Current price label
+  ctx.fillStyle = "#39d98a";
+
+  ctx.font =
+    "bold 11px Inter, sans-serif";
+
+  ctx.fillText(
+    latestClose.toFixed(digits),
+    width - padding.right + 8,
+    currentY - 5
+  );
+
+}
 
 async function renderMarketData() {
   const pairElement = document.getElementById("marketPair");
@@ -239,7 +507,7 @@ async function renderMarketData() {
     }
 
     // Display live market data
-    output.innerHTML = `
+    output.innerHTML = ` drawMarketChart(candles, digits);
       <div class="market-summary">
 
         <div class="market-stat">
@@ -295,46 +563,64 @@ async function renderMarketData() {
         ✓ Live market data loaded successfully.
       </div>
 
-      <div class="candle-wrap">
+   <div class="candle-wrap">
 
-        <table class="candle-table">
+  <div class="chart-toolbar">
+    <span class="chart-title">
+      ${pair} • ${selectedTimeframe}
+    </span>
 
-          <thead>
+    <span class="chart-price">
+      ${latestClose.toFixed(digits)}
+    </span>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="marketChart"></canvas>
+  </div>
+
+  <div style="overflow:auto">
+
+    <table class="candle-table">
+
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Open</th>
+          <th>High</th>
+          <th>Low</th>
+          <th>Close</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        ${candles.map(candle => {
+
+          const open = Number(candle.open);
+          const high = Number(candle.high);
+          const low = Number(candle.low);
+          const close = Number(candle.close);
+
+          return `
             <tr>
-              <th>Time</th>
-              <th>Open</th>
-              <th>High</th>
-              <th>Low</th>
-              <th>Close</th>
+              <td>${candle.datetime}</td>
+              <td>${open.toFixed(digits)}</td>
+              <td>${high.toFixed(digits)}</td>
+              <td>${low.toFixed(digits)}</td>
+              <td>${close.toFixed(digits)}</td>
             </tr>
-          </thead>
+          `;
 
-          <tbody>
+        }).join("")}
 
-            ${candles.map(candle => {
+      </tbody>
 
-              const open = Number(candle.open);
-              const high = Number(candle.high);
-              const low = Number(candle.low);
-              const close = Number(candle.close);
+    </table>
 
-              return `
-                <tr>
-                  <td>${candle.datetime}</td>
-                  <td>${open.toFixed(digits)}</td>
-                  <td>${high.toFixed(digits)}</td>
-                  <td>${low.toFixed(digits)}</td>
-                  <td>${close.toFixed(digits)}</td>
-                </tr>
-              `;
+  </div>
 
-            }).join("")}
-
-          </tbody>
-
-        </table>
-
-      </div>
+</div>
     `;
 
   } catch (error) {
