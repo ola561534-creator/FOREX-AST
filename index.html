@@ -769,13 +769,213 @@ function openAIChartAnalysis(){
     status.textContent="Upload a chart image to begin.";
   };
 
-  document.getElementById("aiAnalyzeBtn").onclick=function(){
-    if(!aiChartDataUrl){
-      status.textContent="Please upload a chart image first.";
-      return;
+  document.getElementById("aiAnalyzeBtn").onclick = async function () {
+
+    if (!aiChartDataUrl) {
+        status.textContent = "Please upload a chart image first.";
+        return;
     }
 
-    status.textContent="Chart received. AI analysis backend connection is required for genuine visual interpretation.";
+    const analyzeBtn = document.getElementById("aiAnalyzeBtn");
+    const originalText = analyzeBtn.textContent;
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = "⏳ Analyzing...";
+
+    status.textContent = "Sending chart to FOREX AST AI...";
+
+    results.style.display = "block";
+
+    try {
+
+        const response = await fetch("/api/ai-analysis", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+
+                image: aiChartDataUrl,
+
+                symbol: window.currentForexSymbol || null,
+
+                timeframe: window.currentForexTimeframe || null
+
+            })
+
+        });
+
+
+        const data = await response.json();
+
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data.error || "AI analysis request failed."
+            );
+
+        }
+
+
+        const a = data.analysis || {};
+
+
+        // Market Bias
+        document.getElementById("aiBias").textContent =
+            a.marketBias || "Not identified";
+
+
+        // Trend
+        document.getElementById("aiTrend").textContent =
+            a.trend || "Not identified";
+
+
+        // Price Action
+        document.getElementById("aiPriceAction").textContent =
+            a.priceAction ||
+            "No clear price action identified.";
+
+
+        // Support and Resistance
+        document.getElementById("aiSR").textContent = [
+
+            a.support && a.support.length
+                ? "Support: " + a.support.join(", ")
+                : "",
+
+            a.resistance && a.resistance.length
+                ? "Resistance: " + a.resistance.join(", ")
+                : ""
+
+        ].filter(Boolean).join(" | ") ||
+        "No clear levels identified.";
+
+
+        // Entry
+        document.getElementById("aiEntry").textContent =
+            a.entry ||
+            "No clear entry zone identified.";
+
+
+        // Stop Loss
+        document.getElementById("aiStop").textContent =
+            a.stopLoss ||
+            "No clear stop-loss identified.";
+
+
+        // Take Profit
+        document.getElementById("aiTake").textContent =
+            a.takeProfit ||
+            "No clear take-profit identified.";
+
+
+        // Risk Reward
+        document.getElementById("aiRR").textContent =
+            a.riskReward ||
+            "Not available.";
+
+
+        // Confidence
+        document.getElementById("aiConfidence").textContent =
+            typeof a.confidence === "number"
+                ? a.confidence + "%"
+                : a.confidence || "Not available";
+
+
+        // Invalidation
+        document.getElementById("aiInvalidation").textContent =
+            a.invalidation ||
+            "No invalidation condition identified.";
+
+
+        // AI Reasoning
+        document.getElementById("aiReasoning").textContent =
+            a.reasoning ||
+            "No reasoning returned.";
+
+
+        // Bullish and Bearish Scenarios
+        document.getElementById("aiScenario").textContent = [
+
+            a.bullishScenario
+                ? "Bullish: " + a.bullishScenario
+                : "",
+
+            a.bearishScenario
+                ? "Bearish: " + a.bearishScenario
+                : ""
+
+        ].filter(Boolean).join(" | ") ||
+        "No clear scenario returned.";
+
+
+        status.textContent =
+            "✅ AI chart analysis completed successfully.";
+
+
+    } catch (error) {
+
+        console.error(
+            "FOREX AST AI Analysis Error:",
+            error
+        );
+
+
+        status.textContent =
+            "❌ AI analysis failed: " +
+            error.message;
+
+
+        document.getElementById("aiBias").textContent =
+            "Analysis unavailable";
+
+        document.getElementById("aiTrend").textContent =
+            "Analysis unavailable";
+
+        document.getElementById("aiPriceAction").textContent =
+            "Unable to retrieve AI analysis.";
+
+        document.getElementById("aiSR").textContent =
+            "Unable to retrieve AI analysis.";
+
+        document.getElementById("aiEntry").textContent =
+            "Unable to retrieve AI analysis.";
+
+        document.getElementById("aiStop").textContent =
+            "Unable to retrieve AI analysis.";
+
+        document.getElementById("aiTake").textContent =
+            "Unable to retrieve AI analysis.";
+
+        document.getElementById("aiRR").textContent =
+            "Unable to retrieve AI analysis.";
+
+        document.getElementById("aiConfidence").textContent =
+            "—";
+
+        document.getElementById("aiInvalidation").textContent =
+            "Unable to retrieve AI analysis.";
+
+        document.getElementById("aiReasoning").textContent =
+            error.message;
+
+        document.getElementById("aiScenario").textContent =
+            "Check your Vercel deployment, API key, and AI backend.";
+
+
+    } finally {
+
+        analyzeBtn.disabled = false;
+
+        analyzeBtn.textContent = originalText;
+
+    }
+
+};
     results.style.display="block";
 
     document.getElementById("aiBias").textContent="Pending AI backend";
