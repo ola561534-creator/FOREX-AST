@@ -31,25 +31,173 @@ button{font:inherit}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:24px;border-top:1px solid var(--border)}
 
 /* Stage 3 — Market Data Engine */
-.market-panel{margin-top:18px}.market-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.market-controls label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:12px}
-.market-controls select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border);background:#07111f;color:var(--text);outline:none}
-.market-controls select:focus{border-color:var(--accent)}.market-actions{display:flex;gap:10px;margin-top:14px}
-.market-btn{border:0;border-radius:10px;padding:11px 15px;font-weight:800;cursor:pointer;background:var(--accent);color:#04130c}
-.market-btn.secondary{background:#16283c;color:var(--text)}.market-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:16px}
-.market-stat{padding:11px 12px;border-radius:10px;background:#07111f;border:1px solid var(--border)}
-.market-stat span{display:block;color:var(--muted);font-size:10px;margin-bottom:4px}.market-stat strong{font-size:15px}
-.market-status{margin-top:12px;padding:10px 12px;border-radius:10px;color:var(--accent);background:rgba(57,217,138,.08);border:1px solid rgba(57,217,138,.25);font-size:12px}
-.candle-wrap{margin-top:16px;border:1px solid var(--border);border-radius:14px;overflow:auto;background:#07111f}
-.candle-table{width:100%;border-collapse:collapse;min-width:620px}.candle-table th,.candle-table td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:right;font-size:11px}
-.candle-table th{color:var(--muted);font-weight:700}.candle-table td:first-child,.candle-table th:first-child{text-align:left}.candle-table tr:last-child td{border-bottom:0}
-@media(max-width:560px){.market-controls{grid-template-columns:1fr}.market-summary{grid-template-columns:1fr 1fr}}
+/* Interactive Market Chart */
+.market-chart-panel{
+  margin-top:18px;
+}
 
-.modal{position:fixed;inset:0;width:100%;height:100dvh;background:rgba(0,0,0,.68);display:grid;place-items:center;padding:20px;z-index:10;overflow:hidden;overscroll-behavior:contain}
-.modal.hidden{display:none}
-.modal-box{position:relative;max-width:560px;width:100%;max-height:calc(100dvh - 40px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--panel);border:1px solid var(--border);border-radius:24px;padding:34px}
-.close{position:absolute;top:12px;right:16px;border:0;background:transparent;color:var(--muted);font-size:28px;cursor:pointer}.modal-box h3{font-size:28px;margin:0 0 10px}.modal-box p{color:var(--muted);line-height:1.7}.next{display:block;margin-top:12px;color:var(--accent);font-weight:700}
-@media(max-width:760px){.topbar{align-items:flex-start;flex-direction:column}.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.hero h2{font-size:38px}}
+.market-chart-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.market-chart-title h4{
+  margin:0 0 4px;
+  font-size:20px;
+}
+
+.market-chart-title p{
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.market-chart-controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.market-chart-controls label{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.market-chart-controls select{
+  width:100%;
+  padding:11px 12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:#07111f;
+  color:var(--text);
+  outline:none;
+}
+
+.market-chart-controls select:focus{
+  border-color:var(--accent);
+}
+
+.market-chart-actions{
+  display:flex;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.market-btn{
+  border:0;
+  border-radius:10px;
+  padding:11px 15px;
+  font-weight:800;
+  cursor:pointer;
+  background:var(--accent);
+  color:#04130c;
+}
+
+.market-btn.secondary{
+  background:#16283c;
+  color:var(--text);
+}
+
+.market-chart-summary{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:9px;
+  margin-bottom:14px;
+}
+
+.market-stat{
+  padding:11px 12px;
+  border-radius:10px;
+  background:#07111f;
+  border:1px solid var(--border);
+}
+
+.market-stat span{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  margin-bottom:4px;
+}
+
+.market-stat strong{
+  font-size:15px;
+}
+
+.chart-container{
+  width:100%;
+  height:450px;
+  background:#07111f;
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+  position:relative;
+}
+
+#forexChart{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.market-status{
+  margin-top:12px;
+  padding:10px 12px;
+  border-radius:10px;
+  color:var(--accent);
+  background:rgba(57,217,138,.08);
+  border:1px solid rgba(57,217,138,.25);
+  font-size:12px;
+}
+
+.market-error{
+  color:#ff7b7b;
+  background:rgba(255,123,123,.08);
+  border-color:rgba(255,123,123,.25);
+}
+
+.market-structure-info{
+  margin-top:14px;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#07111f;
+}
+
+.market-structure-info h4{
+  margin:0 0 8px;
+}
+
+.market-structure-info p{
+  margin:4px 0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+@media(max-width:560px){
+  .market-chart-controls{
+    grid-template-columns:1fr;
+  }
+
+  .market-chart-summary{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .chart-container{
+    height:360px;
+  }
+
+  .market-chart-top{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
 </style>
 </head>
 <body>
@@ -132,133 +280,308 @@ const sampleMarketData={
 {time:"10:00",open:0.59800,high:0.59880,low:0.59740,close:0.59850},{time:"10:15",open:0.59850,high:0.59920,low:0.59790,close:0.59890},{time:"10:30",open:0.59890,high:0.59950,low:0.59830,close:0.59930},{time:"10:45",open:0.59930,high:0.59960,low:0.59850,close:0.59880},{time:"11:00",open:0.59880,high:0.59970,low:0.59840,close:0.59940},{time:"11:15",open:0.59940,high:0.60010,low:0.59890,close:0.59980},{time:"11:30",open:0.59980,high:0.60000,low:0.59890,close:0.59920},{time:"11:45",open:0.59920,high:0.59970,low:0.59850,close:0.59890}]
 };
 
-function marketDataHTML(){return `
-<h3>Market Data Engine</h3>
-<p>Stage 3 starts with local sample data. This lets us test pair selection, timeframes, OHLC candles, spread, and price calculations before connecting a live market-data provider.</p>
-<div class="market-panel">
-<div class="market-controls">
-<label>Currency Pair<select id="marketPair"><option>EUR/USD</option><option>GBP/USD</option><option>USD/JPY</option><option>USD/CHF</option><option>AUD/USD</option><option>USD/CAD</option><option>NZD/USD</option></select></label>
-<label>Timeframe<select id="marketTimeframe"><option>1 Minute</option><option selected>15 Minutes</option><option>1 Hour</option><option>4 Hours</option><option>Daily</option><option>Weekly</option></select></label>
-</div>
-<div class="market-actions"><button class="market-btn" id="loadMarketData">Load Sample Data</button><button class="market-btn secondary" id="refreshMarketData">Refresh</button></div>
-<div id="marketOutput"><div class="market-status">Select a pair and load sample data to begin.</div></div>
-</div>`;}
+function marketDataHTML(){
+  return `
+    <h3>Market Analysis</h3>
 
-async function renderMarketData() {
+    <p>
+      Live market data from the Forex AI market-data engine.
+      The chart displays real OHLC candle data received from the API.
+    </p>
+
+    <div class="market-chart-panel">
+
+      <div class="market-chart-top">
+        <div class="market-chart-title">
+          <h4 id="chartPairTitle">EUR/USD</h4>
+          <p id="chartStatusText">Ready to load market data</p>
+        </div>
+      </div>
+
+      <div class="market-chart-controls">
+
+        <label>
+          Currency Pair
+
+          <select id="marketPair">
+            <option value="EUR/USD">EUR/USD</option>
+            <option value="GBP/USD">GBP/USD</option>
+            <option value="USD/JPY">USD/JPY</option>
+            <option value="USD/CHF">USD/CHF</option>
+            <option value="AUD/USD">AUD/USD</option>
+            <option value="USD/CAD">USD/CAD</option>
+            <option value="NZD/USD">NZD/USD</option>
+          </select>
+        </label>
+
+        <label>
+          Timeframe
+
+          <select id="marketTimeframe">
+            <option value="1min">1 Minute</option>
+            <option value="5min">5 Minutes</option>
+            <option value="15min" selected>15 Minutes</option>
+            <option value="30min">30 Minutes</option>
+            <option value="1h">1 Hour</option>
+            <option value="4h">4 Hours</option>
+            <option value="1day">Daily</option>
+          </select>
+        </label>
+
+      </div>
+
+      <div class="market-actions">
+
+        <button
+          class="market-btn"
+          id="loadMarketData"
+          type="button"
+        >
+          Load Market Data
+        </button>
+
+        <button
+          class="market-btn secondary"
+          id="refreshMarketData"
+          type="button"
+        >
+          Refresh
+        </button>
+
+      </div>
+
+      <div id="marketOutput">
+
+        <div class="market-status">
+          Select your pair and click "Load Market Data".
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+async function renderMarketData(){
+
   const pairElement = document.getElementById("marketPair");
   const timeframeElement = document.getElementById("marketTimeframe");
   const output = document.getElementById("marketOutput");
+  const title = document.getElementById("chartPairTitle");
+  const statusText = document.getElementById("chartStatusText");
 
-  if (!pairElement || !timeframeElement || !output) {
-    console.error("Market data elements not found.");
+  if(
+    !pairElement ||
+    !timeframeElement ||
+    !output
+  ){
+    console.error("Market chart elements not found.");
     return;
   }
 
   const pair = pairElement.value;
+  const timeframe = timeframeElement.value;
 
-  // Convert the dropdown value into a Twelve Data API interval
-  const timeframeMap = {
-  "1 Minute": "1min",
-  "15 Minutes": "15min",
-  "1 Hour": "1h",
-  "4 Hours": "4h",
-  "Daily": "1day",
-  "Weekly": "1week"
-};
+  title.textContent = pair;
 
-  const selectedTimeframe = timeframeElement.value;
-  const timeframe = timeframeMap[selectedTimeframe] || "1h";
+  statusText.textContent =
+    "Loading live market data...";
 
-  // Show loading message
   output.innerHTML = `
     <div class="market-status">
       ⏳ Loading live market data...
     </div>
   `;
 
-  try {
-    // Build API URL safely
+  try{
+
+    /*
+      IMPORTANT:
+      This is your confirmed working API endpoint.
+    */
+
     const apiUrl = new URL(
-  "https://forex-ast.vercel.app/api/market"
-);
+      "https://forex-ast.vercel.app/api/market"
+    );
 
-    apiUrl.searchParams.set("symbol", pair);
-    apiUrl.searchParams.set("interval", timeframe);
-    apiUrl.searchParams.set("outputsize", "50");
+    apiUrl.searchParams.set(
+      "symbol",
+      pair
+    );
 
-    console.log("Requesting market data:", apiUrl.toString());
+    apiUrl.searchParams.set(
+      "interval",
+      timeframe
+    );
 
-    // Request live data from Vercel backend
-    const response = await fetch(apiUrl.toString());
+    apiUrl.searchParams.set(
+      "outputsize",
+      "50"
+    );
 
-    const result = await response.json();
+    console.log(
+      "Requesting:",
+      apiUrl.toString()
+    );
 
-    // Check API response
-    if (!response.ok) {
-      throw new Error(
-        result.error || "The market data server returned an error."
+    const response =
+      await fetch(
+        apiUrl.toString()
       );
+
+    if(!response.ok){
+
+      throw new Error(
+        "Market API returned HTTP " +
+        response.status
+      );
+
     }
 
-    if (!result.success) {
+    const result =
+      await response.json();
+
+    console.log(
+      "Market API response:",
+      result
+    );
+
+    /*
+      The backend should return:
+      {
+        success: true,
+        data: [...]
+      }
+    */
+
+    if(!result.success){
+
       throw new Error(
-        result.error || "Unable to load market data."
+        result.error ||
+        "Unable to load market data."
       );
+
     }
 
-    const candles = result.data;
+    const candles =
+      Array.isArray(result.data)
+        ? result.data
+        : [];
 
-    if (!Array.isArray(candles) || candles.length < 2) {
+    if(candles.length < 5){
+
       throw new Error(
-        "The API did not return enough candle data."
+        "Not enough candle data was returned."
       );
+
     }
 
-    // Latest candle is first because Twelve Data returns
-    // the newest candle first
-    const latest = candles[0];
-    const previous = candles[1];
+    /*
+      Twelve Data normally returns
+      newest candle first.
 
-    // Convert prices from strings to numbers
-    const latestClose = Number(latest.close);
-    const previousClose = Number(previous.close);
+      Reverse the array so the chart
+      displays oldest → newest.
+    */
 
-    const latestOpen = Number(latest.open);
-    const latestHigh = Number(latest.high);
-    const latestLow = Number(latest.low);
+    const chartCandles =
+      [...candles].reverse();
 
-    // Check that prices are valid
-    if (
+    /*
+      Detect swing highs and swing lows.
+    */
+
+    const swingPoints =
+      detectSwingPoints(
+        chartCandles
+      );
+
+    console.log(
+      "Detected swing points:",
+      swingPoints
+    );
+
+    /*
+      Latest candle
+    */
+
+    const latest =
+      chartCandles[
+        chartCandles.length - 1
+      ];
+
+    const previous =
+      chartCandles[
+        chartCandles.length - 2
+      ];
+
+    const latestClose =
+      Number(latest.close);
+
+    const previousClose =
+      Number(previous.close);
+
+    const latestOpen =
+      Number(latest.open);
+
+    const latestHigh =
+      Number(latest.high);
+
+    const latestLow =
+      Number(latest.low);
+
+    if(
       !Number.isFinite(latestClose) ||
       !Number.isFinite(previousClose)
-    ) {
+    ){
+
       throw new Error(
-        "Invalid price data was received from the market API."
+        "Invalid price data received."
       );
+
     }
 
-    // Determine decimal places and pip size
-    const isJpy = pair.endsWith("JPY");
+    /*
+      Pip calculation
+    */
 
-    const digits = isJpy ? 3 : 5;
-    const pipSize = isJpy ? 0.01 : 0.0001;
+    const isJpy =
+      pair.endsWith("JPY");
 
-    // Calculate price movement
-    const change = latestClose - previousClose;
-    const changePips = change / pipSize;
+    const digits =
+      isJpy ? 3 : 5;
 
-    // Determine market direction
-    let direction = "Neutral";
+    const pipSize =
+      isJpy ? 0.01 : 0.0001;
 
-    if (change > 0) {
-      direction = "Bullish";
-    } else if (change < 0) {
-      direction = "Bearish";
+    const change =
+      latestClose -
+      previousClose;
+
+    const changePips =
+      change /
+      pipSize;
+
+    let direction =
+      "Neutral";
+
+    if(change > 0){
+      direction =
+        "Bullish";
     }
 
-    // Display live market data
+    if(change < 0){
+      direction =
+        "Bearish";
+    }
+
+    /*
+      Display market summary
+    */
+
     output.innerHTML = `
-      <div class="market-summary">
+
+      <div class="market-chart-summary">
 
         <div class="market-stat">
           <span>PAIR</span>
@@ -267,109 +590,153 @@ async function renderMarketData() {
 
         <div class="market-stat">
           <span>LAST PRICE</span>
-          <strong>${latestClose.toFixed(digits)}</strong>
+          <strong>
+            ${latestClose.toFixed(digits)}
+          </strong>
         </div>
 
         <div class="market-stat">
           <span>CHANGE</span>
           <strong>
             ${changePips >= 0 ? "+" : ""}
-            ${changePips.toFixed(1)} pips
+            ${changePips.toFixed(1)}
+            pips
           </strong>
         </div>
 
         <div class="market-stat">
           <span>BIAS</span>
-          <strong>${direction}</strong>
+          <strong>
+            ${direction}
+          </strong>
         </div>
 
       </div>
 
-      <div class="market-summary">
+
+      <div class="market-chart-summary">
 
         <div class="market-stat">
           <span>OPEN</span>
-          <strong>${latestOpen.toFixed(digits)}</strong>
+          <strong>
+            ${latestOpen.toFixed(digits)}
+          </strong>
         </div>
 
         <div class="market-stat">
           <span>HIGH</span>
-          <strong>${latestHigh.toFixed(digits)}</strong>
+          <strong>
+            ${latestHigh.toFixed(digits)}
+          </strong>
         </div>
 
         <div class="market-stat">
           <span>LOW</span>
-          <strong>${latestLow.toFixed(digits)}</strong>
+          <strong>
+            ${latestLow.toFixed(digits)}
+          </strong>
         </div>
 
         <div class="market-stat">
-          <span>TIMEFRAME</span>
-          <strong>${selectedTimeframe}</strong>
+          <span>SWING POINTS</span>
+          <strong>
+            ${swingPoints.length}
+          </strong>
         </div>
 
       </div>
 
+
+      <div class="chart-container">
+
+        <canvas id="forexChart"></canvas>
+
+      </div>
+
+
       <div class="market-status">
+
         ✓ Live market data loaded successfully.
-      </div>
-
-      <div class="candle-wrap">
-
-        <table class="candle-table">
-
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Open</th>
-              <th>High</th>
-              <th>Low</th>
-              <th>Close</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            ${candles.map(candle => {
-
-              const open = Number(candle.open);
-              const high = Number(candle.high);
-              const low = Number(candle.low);
-              const close = Number(candle.close);
-
-              return `
-                <tr>
-                  <td>${candle.datetime}</td>
-                  <td>${open.toFixed(digits)}</td>
-                  <td>${high.toFixed(digits)}</td>
-                  <td>${low.toFixed(digits)}</td>
-                  <td>${close.toFixed(digits)}</td>
-                </tr>
-              `;
-
-            }).join("")}
-
-          </tbody>
-
-        </table>
 
       </div>
+
+
+      <div class="market-structure-info">
+
+        <h4>
+          Market Structure Engine
+        </h4>
+
+        <p>
+          Swing Highs detected:
+          <strong>
+            ${
+              swingPoints.filter(
+                p => p.type === "Swing High"
+              ).length
+            }
+          </strong>
+        </p>
+
+        <p>
+          Swing Lows detected:
+          <strong>
+            ${
+              swingPoints.filter(
+                p => p.type === "Swing Low"
+              ).length
+            }
+          </strong>
+        </p>
+
+        <p>
+          HH, HL, LH, LL, BOS and CHoCH
+          analysis will be added next.
+        </p>
+
+      </div>
+
     `;
 
-  } catch (error) {
+    /*
+      Draw the candlestick chart.
+    */
+
+    drawForexChart(
+      chartCandles,
+      swingPoints,
+      pair
+    );
+
+    statusText.textContent =
+      "Live market data loaded";
+
+  }catch(error){
 
     console.error(
-      "Live market data error:",
+      "Market chart error:",
       error
     );
 
+    statusText.textContent =
+      "Market data error";
+
     output.innerHTML = `
-      <div class="market-status">
-        ❌ Unable to load live market data.
+
+      <div class="market-status market-error">
+
+        ❌ Unable to load market data.
+
         <br><br>
+
         ${error.message}
+
       </div>
+
     `;
+
   }
+
 }
 function openMarketData(){
 const marketModal=document.getElementById("marketModal"),marketContent=document.getElementById("marketContent");
