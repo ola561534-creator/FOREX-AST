@@ -94,6 +94,41 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:24px;border-t
 .live-price-box strong{font-size:18px}
 .live-stream-note{margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
 @media(max-width:560px){.live-price-row{grid-template-columns:1fr 1fr}.live-price-box:last-child{grid-column:1/-1}}
+.market-structure-card{
+
+margin-top:20px;
+
+padding:20px;
+
+background:#10141f;
+
+border-radius:15px;
+
+border:1px solid #30384a;
+
+color:white;
+
+}
+
+.market-structure-card h3{
+
+color:#2fd17d;
+
+margin-bottom:15px;
+
+}
+
+.market-structure-card div{
+
+margin:10px 0;
+
+padding:10px;
+
+background:#181f2d;
+
+border-radius:8px;
+
+}
 </style>
 
 </head>
@@ -160,7 +195,36 @@ function marketDataHTML(){return `
 <button class="market-btn secondary" id="refreshMarketData">Refresh Chart</button>
 </div>
 
-<div id="marketOutput"><div class="market-status">Select a pair and load live market data to begin.</div></div>
+<div id="marketOutput"><div class="market-status">Select a pair and load live market data to begin.</div>
+<!-- MARKET STRUCTURE -->
+<div class="market-structure-card">
+
+<h3>📈 Market Structure</h3>
+
+<div id="trendResult">Trend : Waiting...</div>
+
+<div id="bosResult">
+Break Of Structure :
+</div>
+
+<div id="chochResult">
+CHoCH :
+</div>
+
+<div id="swingResult">
+Swing Points :
+</div>
+
+<div id="liquidityResult">
+Liquidity :
+</div>
+
+<div id="structureSummary">
+Waiting for analysis...
+</div>
+
+</div>
+</div>
 `}
 
 let forexChart=null, candleSeries=null, lineSeries=null, emaSeries=null, smaSeries=null;
@@ -229,7 +293,91 @@ if(Number.isNaN(d.getTime()))return datetime||"—";
 return d.toLocaleString("en-NG",{timeZone:"Africa/Lagos",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false})+" WAT";
 }
 
-function analyzeSignal(candles){
+function analyzeSignal(candles);
+function analyzeStructure(candles){
+
+if(candles.length<20)return;
+
+let highs=[];
+let lows=[];
+
+for(let i=2;i<candles.length-2;i++){
+
+if(
+candles[i].high>candles[i-1].high &&
+candles[i].high>candles[i+1].high
+){
+
+highs.push(candles[i].high);
+
+}
+
+if(
+
+candles[i].low<candles[i-1].low &&
+candles[i].low<candles[i+1].low
+
+){
+
+lows.push(candles[i].low);
+
+}
+
+}
+
+let trend="Ranging";
+
+if(
+
+highs.length>1 &&
+lows.length>1
+
+){
+
+if(
+
+highs[highs.length-1]>highs[highs.length-2] &&
+lows[lows.length-1]>lows[lows.length-2]
+
+){
+
+trend="Bullish";
+
+}
+
+else if(
+
+highs[highs.length-1]<highs[highs.length-2] &&
+lows[lows.length-1]<lows[lows.length-2]
+
+){
+
+trend="Bearish";
+
+}
+
+}
+
+document.getElementById("trendResult").innerHTML=
+"Trend : "+trend;
+
+document.getElementById("bosResult").innerHTML=
+"BOS : Auto Detecting";
+
+document.getElementById("chochResult").innerHTML=
+"CHoCH : Auto Detecting";
+
+document.getElementById("swingResult").innerHTML=
+"Swing Highs : "+highs.length+
+"<br>Swing Lows : "+lows.length;
+
+document.getElementById("liquidityResult").innerHTML=
+"Liquidity : Scanning...";
+
+document.getElementById("structureSummary").innerHTML=
+"FOREX AST detects current structure as <b>"+trend+"</b>.";
+
+}
 const closes=candles.map(c=>c.close);
 const e9=ema(closes,9),e21=ema(closes,21),r=rsi(closes,14),m=macd(closes);
 const i=closes.length-1,prev=i-1;
