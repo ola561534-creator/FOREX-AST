@@ -406,7 +406,7 @@ if(!pairElement||!timeframeElement||!output)return;
 const pair=pairElement.value,selectedTimeframe=timeframeElement.value,timeframe=marketTimeframeMap()[selectedTimeframe]||"1h";
 output.innerHTML='<div class="market-status">⏳ Loading live market data and technical analysis...</div>';
 try{
-const apiUrl=new URL("https://forex-ast.vercel.app/api/market");
+const apiUrl = new URL("https://forex-ast-ai.vercel.app/api/market");
 apiUrl.searchParams.set("symbol",pair);apiUrl.searchParams.set("interval",timeframe);apiUrl.searchParams.set("outputsize","100");
 const response=await fetch(apiUrl.toString());
 const result=await response.json();
@@ -804,7 +804,9 @@ function openAIChartAnalysis(){
     setText("aiScenario","AI visual analysis is in progress...");
 
     try{
-      const response=await fetch("/api/ai-analysis",{
+      const response = await fetch(
+  "https://forex-ast-ai.vercel.app/api/ai-analysis",
+  {
         method:"POST",
         headers:{
           "Content-Type":"application/json"
