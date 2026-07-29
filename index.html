@@ -769,27 +769,115 @@ function openAIChartAnalysis(){
     status.textContent="Upload a chart image to begin.";
   };
 
-  document.getElementById("aiAnalyzeBtn").onclick=function(){
+  document.getElementById("aiAnalyzeBtn").onclick=async function(){
     if(!aiChartDataUrl){
       status.textContent="Please upload a chart image first.";
       return;
     }
 
-    status.textContent="Chart received. AI analysis backend connection is required for genuine visual interpretation.";
+    const analyzeButton=document.getElementById("aiAnalyzeBtn");
+    const setText=(id,value)=>{
+      const el=document.getElementById(id);
+      if(el) el.textContent=value==null || value==="" ? "—" : String(value);
+    };
+    const listText=(value)=>{
+      if(Array.isArray(value)) return value.length ? value.join(", ") : "None clearly identified";
+      return value==null || value==="" ? "—" : String(value);
+    };
+
+    analyzeButton.disabled=true;
+    analyzeButton.textContent="⏳ Analyzing...";
+    status.textContent="Sending the chart securely to the AI analysis backend...";
     results.style.display="block";
 
-    document.getElementById("aiBias").textContent="Pending AI backend";
-    document.getElementById("aiTrend").textContent="Pending AI backend";
-    document.getElementById("aiPriceAction").textContent="The uploaded chart is ready for AI visual interpretation.";
-    document.getElementById("aiSR").textContent="Will be identified by the connected AI vision model.";
-    document.getElementById("aiEntry").textContent="Will be proposed after the AI confirms a visible setup.";
-    document.getElementById("aiStop").textContent="Will be based on the setup invalidation level.";
-    document.getElementById("aiTake").textContent="Will be based on visible structure and projected targets.";
-    document.getElementById("aiRR").textContent="Calculated after entry, stop-loss, and target levels are identified.";
-    document.getElementById("aiConfidence").textContent="Not yet available";
-    document.getElementById("aiInvalidation").textContent="Will be defined by the AI analysis.";
-    document.getElementById("aiReasoning").textContent="The chart upload is working and the image is ready. The next step is connecting this module to a secure AI backend.";
-    document.getElementById("aiScenario").textContent="No trade scenario generated yet.";
+    setText("aiBias","Analyzing...");
+    setText("aiTrend","Analyzing...");
+    setText("aiPriceAction","Analyzing chart...");
+    setText("aiSR","Analyzing chart...");
+    setText("aiEntry","Analyzing chart...");
+    setText("aiStop","Analyzing chart...");
+    setText("aiTake","Analyzing chart...");
+    setText("aiRR","Analyzing chart...");
+    setText("aiConfidence","Analyzing...");
+    setText("aiInvalidation","Analyzing chart...");
+    setText("aiReasoning","AI visual analysis is in progress...");
+    setText("aiScenario","AI visual analysis is in progress...");
+
+    try{
+      const response=await fetch("/api/ai-analysis",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          image:aiChartDataUrl,
+          symbol:"Unknown",
+          timeframe:"Unknown"
+        })
+      });
+
+      let data;
+      try{
+        data=await response.json();
+      }catch(parseError){
+        throw new Error("The AI backend returned an invalid server response.");
+      }
+
+      if(!response.ok || !data.success){
+        throw new Error(data?.error || "AI analysis request failed.");
+      }
+
+      const analysis=data.analysis || {};
+
+      setText("aiBias",analysis.marketBias);
+      setText("aiTrend",analysis.trend);
+      setText("aiPriceAction",analysis.priceAction);
+      setText(
+        "aiSR",
+        `Support: ${listText(analysis.support)} | Resistance: ${listText(analysis.resistance)}`
+      );
+      setText("aiEntry",analysis.entry);
+      setText("aiStop",analysis.stopLoss);
+      setText("aiTake",analysis.takeProfit);
+      setText("aiRR",analysis.riskReward);
+
+      const confidence=Number(analysis.confidence);
+      setText(
+        "aiConfidence",
+        Number.isFinite(confidence) ? `${Math.max(0,Math.min(100,confidence))}%` : analysis.confidence
+      );
+
+      setText("aiInvalidation",analysis.invalidation);
+      setText("aiReasoning",analysis.reasoning);
+
+      const bullish=analysis.bullishScenario || "No clear bullish scenario identified.";
+      const bearish=analysis.bearishScenario || "No clear bearish scenario identified.";
+      setText(
+        "aiScenario",
+        `Bullish scenario: ${bullish} | Bearish scenario: ${bearish}`
+      );
+
+      status.textContent="✅ AI chart analysis completed successfully.";
+    }catch(error){
+      console.error("FOREX AST AI Analysis error:",error);
+      status.textContent=`❌ AI analysis failed: ${error.message}`;
+
+      setText("aiBias","Analysis unavailable");
+      setText("aiTrend","Analysis unavailable");
+      setText("aiPriceAction","—");
+      setText("aiSR","—");
+      setText("aiEntry","—");
+      setText("aiStop","—");
+      setText("aiTake","—");
+      setText("aiRR","—");
+      setText("aiConfidence","—");
+      setText("aiInvalidation","—");
+      setText("aiReasoning",error.message);
+      setText("aiScenario","—");
+    }finally{
+      analyzeButton.disabled=false;
+      analyzeButton.textContent="🔍 Analyze Chart";
+    }
   };
 }
 
